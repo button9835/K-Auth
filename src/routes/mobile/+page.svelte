@@ -1,24 +1,69 @@
-<script lang="ts">
-  import { db } from '$lib/firebase';
-  import { ref, get, update } from 'firebase/database';
+<script>
+  import { onMount } from 'svelte';
+  import { database } from '$lib/firebase';
+  import { ref, set } from 'firebase/database';
 
-  let inputCode = '';
+  let code = '';
+  let isConnecting = false;
   let message = '';
 
   async function connect() {
-    const sessionRef = ref(db, 'sessions/' + inputCode);
-    const snapshot = await get(sessionRef);
+    if (code.trim().length === 0) {
+      message = '인증 코드를 입력해주세요.';
+      return;
+    }
 
-    if (snapshot.exists() && snapshot.val().status === 'waiting') {
-      await update(sessionRef, { status: 'connected' });
-      message = '연결 성공! 게임 시작!';
-      // TODO: 게임 시작 로직 실행
-    } else {
-      message = '잘못된 코드입니다.';
+    isConnecting = true;
+    message = '';
+
+    try {
+      // 인증 코드를 Firebase에 기록
+      await set(ref(database, `sessions/${code}`), {
+        status: 'connected',
+        connectedAt: Date.now()
+      });
+
+      message = '✅ 연결 성공! 게임을 시작하세요.';
+      // 여기서 게임 시작 로직 호출 가능
+    } catch (error) {
+      console.error(error);
+      message = '❌ 연결 실패: Firebase 오류';
+    } finally {
+      isConnecting = false;
     }
   }
 </script>
 
-<input bind:value={inputCode} placeholder="인증 코드 입력" />
-<button on:click={connect}>연결</button>
+<style>
+  input {
+    padding: 0.5rem;
+    font-size: 1rem;
+  }
+
+  button {
+    margin-top: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+  }
+
+  p {
+    margin-top: 1rem;
+  }
+</style>
+
+<h1>🔐 인증 코드 입력</h1>
+
+<input
+  type="text"
+  bind:value={code}
+  placeholder="인증 코드 입력..."
+  maxlength="8"
+/>
+
+<br />
+
+<button on:click={connect} disabled={isConnecting}>
+  {isConnecting ? '연결 중...' : '연결'}
+</button>
+
 <p>{message}</p>
