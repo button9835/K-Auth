@@ -3,11 +3,11 @@
   import { goto } from '$app/navigation';
 
   function goToPC() {
-    goto('/pc');
+    goto('pc');
   }
 
   function goToMobile() {
-    goto('/mobile');
+    goto('mobile');
   }
 </script>
 
